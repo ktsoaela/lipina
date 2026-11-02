@@ -1,0 +1,89 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lipina — Music, Radio & Podcasts</title>
+  <meta name="description" content="Your music, South African radio, podcasts, song recognition and study tools. Works offline.">
+  <meta name="theme-color" content="#0b0b10">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="{% static 'web/icons/icon.svg' %}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{% static 'web/icons/icon.svg' %}">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}">
+  <script>window.LIPINA = { static: "{% get_static_prefix %}web/", debug: {{ debug|yesno:"true,false" }} };</script>
+  <script type="module" src="{% static 'web/js/app.js' %}"></script>
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/" data-link><svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M3 10h2v4H3zm4-3h2v10H7zm4-4h2v18h-2zm4 4h2v10h-2zm4 3h2v4h-2z"/></svg><span>Lipina</span></a>
+      <nav class="nav">
+        <a href="/" data-link data-icon="home">Home</a>
+        <a href="/search" data-link data-icon="search">Search</a>
+        <a href="/radio" data-link data-icon="radio">Radio</a>
+        <a href="/streaming" data-link data-icon="cast">Streaming</a>
+        <a href="/podcasts" data-link data-icon="podcast">Podcasts</a>
+        <a href="/library" data-link data-icon="library">Your Library</a>
+        <a href="/recognize" data-link data-icon="wave">Identify song</a>
+        <a href="/tools" data-link data-icon="focus">Focus & tools</a>
+      </nav>
+      <div class="sidebar-section">
+        <div class="sidebar-head"><span>Playlists</span><button class="icon-btn" id="new-playlist" title="New playlist" aria-label="New playlist">+</button></div>
+        <div id="sidebar-playlists" class="sidebar-playlists"></div>
+      </div>
+      <a class="nav-settings" href="/settings" data-link data-icon="settings">Settings</a>
+    </aside>
+
+    <main class="main" id="main" tabindex="-1">
+      <div id="offline-banner" class="offline-banner" hidden>You're offline. Your downloads and local files still play.</div>
+      <div id="view" class="view"></div>
+    </main>
+
+    <aside class="np-panel" id="np-panel" hidden></aside>
+
+    <footer class="player" id="player" hidden>
+      <div class="player-track">
+        <img id="p-art" class="p-art" alt="" src="data:,">
+        <div class="p-meta">
+          <div id="p-title" class="p-title"></div>
+          <div id="p-sub" class="p-sub"></div>
+        </div>
+        <button class="icon-btn" id="p-like" title="Like (L)" aria-label="Like"></button>
+      </div>
+      <div class="player-center">
+        <div class="controls">
+          <button class="icon-btn" id="p-shuffle" title="Shuffle (S)" aria-label="Shuffle"></button>
+          <button class="icon-btn" id="p-prev" title="Previous (P)" aria-label="Previous"></button>
+          <button class="play-btn" id="p-play" title="Play/Pause (Space)" aria-label="Play"></button>
+          <button class="icon-btn" id="p-next" title="Next (N)" aria-label="Next"></button>
+          <button class="icon-btn" id="p-repeat" title="Repeat (R)" aria-label="Repeat"></button>
+        </div>
+        <div class="progress">
+          <span id="p-cur">0:00</span>
+          <input type="range" id="p-seek" min="0" max="1000" value="0" aria-label="Seek">
+          <span id="p-dur">0:00</span>
+        </div>
+      </div>
+      <div class="player-right">
+        <button class="icon-btn" id="p-lyrics" title="Lyrics" aria-label="Lyrics"></button>
+        <button class="icon-btn" id="p-queue" title="Queue" aria-label="Queue"></button>
+        <button class="icon-btn" id="p-speed" title="Playback speed" aria-label="Speed">1×</button>
+        <button class="icon-btn" id="p-mute" title="Mute (M)" aria-label="Mute"></button>
+        <input type="range" id="p-vol" min="0" max="100" value="100" aria-label="Volume">
+        <canvas id="p-viz" class="p-viz" width="120" height="32" aria-hidden="true"></canvas>
+      </div>
+    </footer>
+
+    <nav class="tabbar" id="tabbar">
+      <a href="/" data-link data-icon="home">Home</a>
+      <a href="/search" data-link data-icon="search">Search</a>
+      <a href="/radio" data-link data-icon="radio">Radio</a>
+      <a href="/podcasts" data-link data-icon="podcast">Podcasts</a>
+      <a href="/library" data-link data-icon="library">Library</a>
+    </nav>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <noscript>Lipina needs JavaScript enabled.</noscript>
+</body>
+</html>
