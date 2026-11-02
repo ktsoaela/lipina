@@ -1,87 +1,163 @@
-# Lipina — music, South African radio, podcasts & focus
+<div align="center">
+  <img src="backend/web/static/web/icons/icon.svg" alt="Lipina" width="128" />
 
-Lipina is a music app that works offline. You can stream your own library, tune into live South African radio, follow podcasts, identify songs Shazam-style, and use study tools. There's a web app (an installable PWA) and a Flutter app for Android and iOS. Both use the same Django API.
+  <h1>Lipina</h1>
 
-```
-backend/   Django 5 + DRF API, web app (PWA) and admin
-mobile/    Flutter app (Android/iOS), see mobile/README.md
-deploy/    nginx config
-docker-compose.yml   nginx · gunicorn · Postgres · Redis · scheduler
-```
+  <p><strong>Your music, South African radio, podcasts, and focus tools. Offline when you want it.</strong></p>
 
-## Features
+  <p>
+    <img alt="Stack" src="https://img.shields.io/badge/Django_5-Flutter-0e8f6c?style=flat-square" />
+  </p>
+</div>
 
-| | Web | Mobile |
-|---|---|---|
-| **Library**: upload (tags and cover art read automatically), songs, albums, artists, Liked Songs | ✓ | ✓ |
-| **Playlists**: create, rename, reorder, public/private, add from anywhere | ✓ | ✓ |
-| **Player**: queue, play next, shuffle, repeat, track radio, speed, media keys and lock screen | ✓ | ✓ (background) |
-| **South African Radio**: about 230 live South African stations, filter by province or genre, favourites, now-playing title | ✓ | ✓ |
-| **Streaming services**: connect Spotify (Premium), Apple Music or YouTube Music and play them through Lipina's player and queue; free iTunes previews with no setup | ✓ | |
-| **Podcasts**: SA top chart, directory search, follow, new-episodes inbox, resume points synced across devices | ✓ | ✓ |
-| **Identify a song**: 10 s mic clip → AudD fingerprint match → links, preview, or your own copy | ✓ | ✓ |
-| **Lyrics**: time-synced karaoke lyrics (tap a line to seek) | ✓ | ✓ |
-| **Offline-first**: download tracks, playlists and episodes; play local files; cached pages; history and progress queued and synced later | ✓ (IndexedDB + service worker) | ✓ (Hive + files) |
-| **Focus & tools**: Pomodoro timer that pauses music on breaks, ambient noise (brown/pink/white/rain/ocean), sleep timer with fade-out, metronome and tap tempo | ✓ | ✓ |
-| **Equalizer**: 5-band EQ with presets (including Amapiano) | ✓ | ✓ (Android) |
-| **Tuner** (chromatic, mic), visualizer, keyboard shortcuts | ✓ | |
+**Author:** [Khotso Tsoaela](https://github.com/ktsoaela) (`@ktsoaela`)
 
-External services (all have free tiers):
-- [radio-browser.info](https://www.radio-browser.info): radio directory, no key needed.
-- [LRCLIB](https://lrclib.net): lyrics, no key needed.
-- Apple Podcasts directory: podcast search, no key needed.
-- [AudD](https://audd.io): song recognition. Needs `AUDD_API_TOKEN`.
-- Streaming (optional, see `.env.example`): Spotify needs `SPOTIFY_CLIENT_ID`, YouTube Music needs `YOUTUBE_API_KEY`, Apple Music needs a MusicKit key (`APPLE_MUSIC_TEAM_ID`, `APPLE_MUSIC_KEY_ID`, `APPLE_MUSIC_PRIVATE_KEY_FILE`). iTunes previews need nothing.
-- SABC stations missing from radio-browser (Radio 2000, SAfm, Ikwekwezi, Ligwalagwala, Motsweding, X-K FM, Tru FM) are built in.
+---
 
-## Run locally
+A listening app for music you already have, live South African radio, and podcasts. The same Django API serves the website and the Android app.
+
+**Lipina** keeps your library and playlists on the device, so playback still works with no network. Song recognition, radio, and podcast search need the server.
+
+---
+
+## What it does
+
+- Plays your own files, with albums, artists, playlists, and liked songs
+- Tunes live South African radio, filtered by province or genre
+- Follows podcasts, with resume points and episodes saved for offline
+- Identifies a song from a short microphone clip
+- Shows time-synced lyrics
+- Focus tools: Pomodoro, sleep timer, ambient noise, metronome, and an equalizer
+
+---
+
+## Quick start
+
+**Requirements:** Python 3.11+, and Flutter 3.27+ if you are building the Android app.
 
 ```bash
 cd backend
-python -m venv .venv && .venv/Scripts/activate      # macOS/Linux: source .venv/bin/activate
+python -m venv .venv
+.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-set DEBUG=1                                         # macOS/Linux: export DEBUG=1
+copy .env.example .env          # macOS/Linux: cp .env.example .env
+```
+
+Set `DEBUG=1` in `.env` for local work, then:
+
+```bash
 python manage.py migrate
 python manage.py createsuperuser
-python manage.py sync_radio                         # optional; also runs on first radio visit
 python manage.py runserver
 ```
-Open http://127.0.0.1:8000 for the web app or http://127.0.0.1:8000/admin for the admin. Staff can publish tracks to the shared catalog from the admin or the upload page.
 
-Mobile: see [mobile/README.md](mobile/README.md). On the Android emulator, `http://10.0.2.2:8000` points at your local backend.
+Open http://127.0.0.1:8000 for the site, or http://127.0.0.1:8000/admin for admin. `python manage.py sync_radio` fills the station list; the first visit to radio does this too.
 
-## Deploy (Docker)
+Put secrets only in `backend/.env`. That file and `backend/db.sqlite3` stay on the machine. They are not part of the app build.
+
+| Goal | Command |
+|------|---------|
+| Website | `python manage.py runserver` → http://127.0.0.1:8000 |
+| Phone on the same Wi-Fi | `python manage.py runserver 0.0.0.0:8000` |
+| Android emulator | point the app at `http://10.0.2.2:8000` |
+
+### Production checklist
+
+1. Set `DEBUG=0` and a long random `SECRET_KEY`
+2. Set `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` to the real host
+3. Use Postgres via `DATABASE_URL` (see Docker below)
+4. Leave `DJANGO_SUPERUSER_PASSWORD` empty in any file that is committed
+5. Terminate TLS at the reverse proxy
+
+---
+
+## Android
+
+The installable app is an APK, built from `mobile/`. The server address is chosen on the login screen. The username and password are typed there. They are not compiled into the APK, and neither is the database.
 
 ```bash
-cp backend/.env.example backend/.env      # set SECRET_KEY, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, AUDD_API_TOKEN …
+cd mobile
+flutter pub get
+flutter build apk --release --dart-define=LIPINA_API=https://your-server.example
+```
+
+The file is written to `mobile/build/app/outputs/flutter-apk/app-release.apk`. Copy it to the phone and open it. The phone and the computer must be on the same network when the server is still on your machine. Change the server URL on the login screen if the address changes.
+
+iOS notes are in [mobile/README.md](mobile/README.md).
+
+---
+
+## Features
+
+| | Web | Android |
+|---|---|---|
+| Library: upload, tags, cover art, albums, artists, liked songs | ✓ | ✓ |
+| Playlists: create, rename, reorder, public or private | ✓ | ✓ |
+| Player: queue, shuffle, repeat, speed, media keys | ✓ | ✓ (background) |
+| South African radio, favourites, now-playing title | ✓ | ✓ |
+| Podcasts: charts, search, follow, resume, offline episodes | ✓ | ✓ |
+| Identify a song (10 s clip) | ✓ | ✓ |
+| Time-synced lyrics | ✓ | ✓ |
+| Offline library and downloads | ✓ | ✓ |
+| Focus tools and equalizer | ✓ | ✓ (equalizer on Android) |
+| Spotify, Apple Music, YouTube Music, iTunes previews | ✓ | |
+
+Optional keys live in `.env` and are documented in [backend/.env.example](backend/.env.example):
+
+- Radio directory and lyrics need no key
+- Song recognition needs `AUDD_API_TOKEN`
+- Spotify, YouTube Music, and Apple Music need their own keys. iTunes previews need nothing
+
+---
+
+## Stack
+
+| Layer | Technology |
+|--------|------------|
+| API and website | Django 5, Django REST framework, SQLite or Postgres |
+| Android | Flutter |
+| Playback on the phone | just_audio, audio_service |
+| Deploy | Docker Compose, Gunicorn, nginx, Redis |
+
+---
+
+## Docker
+
+```bash
+cp backend/.env.example backend/.env
 docker compose up -d --build
 ```
-- **nginx** serves cover art directly. Audio goes through `X-Accel-Redirect` after Django checks a short-lived signed URL, so Python workers never stream bytes and seeking with Range requests works.
-- **scheduler** refreshes podcast feeds hourly and radio stations daily.
-- Put TLS in front with Caddy, Cloudflare or certbot. The app trusts `X-Forwarded-Proto`.
-- Back up the `pgdata` and `media` volumes.
 
-## API overview
-All under `/api/`, authenticated with a JWT (`Authorization: Bearer …`).
+Compose overrides the database, cache, and media path so they point at the `db` and `redis` services. nginx serves cover art. Audio is handed to nginx with `X-Accel-Redirect` after Django checks a short-lived signed URL. A scheduler refreshes podcast feeds hourly and radio stations daily.
+
+Back up the `pgdata` and `media` volumes. Put TLS in front with Caddy, Cloudflare, or certbot.
+
+---
+
+## API
+
+Everything is under `/api/`, with a JWT in `Authorization: Bearer …`.
 
 - `auth/register/` · `auth/token/` · `auth/token/refresh/` · `auth/me/` · `auth/password/`
-- `tracks/` (multipart upload, `?scope=mine|catalog`, `?search=`, `?ordering=`) · `tracks/{id}/stream/?t=` · `tracks/{id}/like/` · `tracks/liked/` · `tracks/{id}/radio/` · `tracks/genres/`
-- `albums/` · `artists/` (with `/tracks/`) · `playlists/` (+ `/tracks/`, `/tracks/{id}/`, `/reorder/`)
-- `home/` · `search/?q=` · `history/` (POST one or a batch, idempotent via `client_id`) · `library/snapshot/`
-- `radio/stations/` (`?q= ?state= ?tag= ?favorites=1 ?https=1`) · `/facets/` · `/{id}/now-playing/` · `/{id}/favorite/`
-- `podcasts/directory/top/` · `podcasts/directory/search/?q=` · `podcasts/shows/` (POST `{itunes_id}` or `{feed_url}` imports a show) · `/episodes/` · `/subscribe/` · `shows/subscriptions/` · `shows/feed/` · `episodes/{id}/progress/` · `episodes/in-progress/`
-- `connect/` (which streaming services are set up) · `connect/itunes/search/?q=` · `connect/youtube/search/?q=` · `connect/apple-music/token/`
-- `recognize/` (POST multipart `file`) · `lyrics/?track=` or `?title=&artist=`
+- `tracks/` · `albums/` · `artists/` · `playlists/`
+- `home/` · `search/?q=` · `history/` · `library/snapshot/`
+- `radio/stations/` · `podcasts/`
+- `recognize/` · `lyrics/`
+
+---
 
 ## Tests
+
 ```bash
-cd backend && DEBUG=1 python manage.py test   # API, streaming/ranges, permissions, offline replay, radio/podcast ingest, SSRF guard
+cd backend && python manage.py test
 cd mobile && flutter test
 ```
-CI (`.github/workflows/ci.yml`) runs the backend against Postgres, deploy checks, a web syntax check, `flutter analyze` and `flutter test`, and a Docker build.
 
-## Security notes
-- Audio URLs are signed and expire (`STREAM_URL_MAX_AGE`). Private tracks are only visible to their owner.
-- Every outbound fetch of a user-supplied or directory URL (podcast feeds, radio ICY metadata) is checked against private, loopback and link-local addresses, including on each redirect.
-- Rate limits are tighter on login/register (10/min) and recognition (20/hour, since AudD calls cost money).
-- Uploads are limited by extension and size, and deduplicated per user by SHA-256.
+---
+
+## Security
+
+- Audio URLs are signed and expire. Private tracks are visible only to their owner.
+- Fetches of podcast feeds and radio metadata refuse private, loopback, and link-local addresses, including after a redirect.
+- Login and registration are limited to 10 requests a minute. Recognition is limited to 20 an hour.
+- Uploads are limited by extension and size, and repeated files are stored once per user.

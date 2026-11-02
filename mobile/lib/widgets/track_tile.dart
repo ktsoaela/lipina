@@ -10,11 +10,12 @@ import '../services/player_controller.dart';
 import 'common.dart';
 
 class TrackTile extends StatelessWidget {
-  const TrackTile({super.key, required this.item, required this.onTap, this.track, this.index, this.trailing});
+  const TrackTile({super.key, required this.item, required this.onTap, this.track, this.index, this.trailing, this.onDeleted});
 
   final PlayableItem item;
   final Track? track;
   final VoidCallback onTap;
+  final VoidCallback? onDeleted;
   final int? index;
   final Widget? trailing;
 
@@ -53,12 +54,12 @@ class TrackTile extends StatelessWidget {
         ),
       ]),
       trailing: trailing ??
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () => showItemActions(context, item, track: track)),
+          IconButton(icon: const Icon(Icons.more_vert), onPressed: () => showItemActions(context, item, track: track, onDeleted: onDeleted)),
     );
   }
 }
 
-Future<void> showItemActions(BuildContext context, PlayableItem item, {Track? track}) {
+Future<void> showItemActions(BuildContext context, PlayableItem item, {Track? track, VoidCallback? onDeleted}) {
   final player = context.read<PlayerController>();
   final downloads = context.read<DownloadService>();
   return showModalBottomSheet(
@@ -138,6 +139,30 @@ Future<void> showItemActions(BuildContext context, PlayableItem item, {Track? tr
               ),
           ],
         ],
+        if (track != null && track.isOwner)
+          ListTile(
+            leading: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
+            title: const Text('Delete from library'),
+            onTap: () async {
+              Navigator.pop(sheet);
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (d) => AlertDialog(
+                  title: const Text('Delete song?'),
+                  content: Text('"${item.title}" will be removed from your library and from any playlists.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Delete')),
+                  ],
+                ),
+              );
+              if (ok != true || !context.mounted) return;
+              await context.read<ApiClient>().delete('/api/tracks/${track.id}/');
+              downloads.remove(item.key);
+              onDeleted?.call();
+              if (context.mounted) toast(context, 'Deleted "${item.title}"');
+            },
+          ),
         if (item.kind == MediaKind.track || item.kind == MediaKind.episode)
           downloads.isDownloaded(item.key)
               ? ListTile(

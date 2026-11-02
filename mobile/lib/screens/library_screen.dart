@@ -95,6 +95,28 @@ class _Playlists extends StatelessWidget {
               leading: Cover(p.coverUrl, size: 52, icon: Icons.queue_music),
               title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('${p.trackCount} songs', style: const TextStyle(color: LipinaColors.muted)),
+              trailing: p.isOwner
+                  ? IconButton(
+                      tooltip: 'Delete playlist',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (d) => AlertDialog(
+                            title: const Text('Delete playlist?'),
+                            content: Text('"${p.name}" will be deleted. Songs stay in your library.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                              FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Delete')),
+                            ],
+                          ),
+                        );
+                        if (ok != true || !context.mounted) return;
+                        await api.delete('/api/playlists/${p.id}/');
+                        await reload();
+                      },
+                    )
+                  : null,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CollectionScreen.playlist(p.id, p.name)))
                   .then((_) => reload()),
             ),
@@ -148,7 +170,12 @@ class _SongsState extends State<_Songs> {
               );
             }
             final t = tracks[i - 1];
-            return TrackTile(item: PlayableItem.fromTrack(t), track: t, onTap: () => player.playTracks(tracks, start: i - 1));
+            return TrackTile(
+              item: PlayableItem.fromTrack(t),
+              track: t,
+              onTap: () => player.playTracks(tracks, start: i - 1),
+              onDeleted: reload,
+            );
           },
         ),
       ),

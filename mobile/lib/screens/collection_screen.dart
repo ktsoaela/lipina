@@ -83,7 +83,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
           final items = tracks.map(PlayableItem.fromTrack).toList();
           final total = tracks.fold<double>(0, (s, t) => s + t.duration);
           final isOwner = _meta?['is_owner'] == true;
-          final cover = widget.kind == CollectionKind.playlist ? _meta?['cover_url'] as String? : tracks.firstOrNull?.coverUrl;
+          final cover = widget.kind == CollectionKind.playlist
+              ? (_meta?['cover_url'] as String?)
+              : tracks.firstOrNull?.coverUrl;
           return RefreshIndicator(
             onRefresh: reload,
             child: CustomScrollView(slivers: [
@@ -136,6 +138,12 @@ class _CollectionScreenState extends State<CollectionScreen> {
                               toast(context, 'Downloading ${items.length} songs for offline');
                             },
                     ),
+                    if (widget.kind == CollectionKind.playlist && isOwner)
+                      IconButton(
+                        tooltip: 'Delete playlist',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: _delete,
+                      ),
                     IconButton(
                       tooltip: 'Shuffle',
                       icon: const Icon(Icons.shuffle_rounded),
@@ -170,9 +178,19 @@ class _CollectionScreenState extends State<CollectionScreen> {
                             .read<ApiClient>()
                             .delete('/api/playlists/${widget.id}/tracks/${tracks[i].id}/')
                             .then((_) => reload()),
-                        child: TrackTile(item: items[i], track: tracks[i], onTap: () => player.playTracks(tracks, start: i)),
+                        child: TrackTile(
+                          item: items[i],
+                          track: tracks[i],
+                          onTap: () => player.playTracks(tracks, start: i),
+                          onDeleted: reload,
+                        ),
                       )
-                    : TrackTile(item: items[i], track: tracks[i], onTap: () => player.playTracks(tracks, start: i)),
+                    : TrackTile(
+                        item: items[i],
+                        track: tracks[i],
+                        onTap: () => player.playTracks(tracks, start: i),
+                        onDeleted: reload,
+                      ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ]),

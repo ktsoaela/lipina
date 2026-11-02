@@ -89,6 +89,7 @@ svg.i { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .card:hover { background: var(--surface-hi); }
 .card .art { width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: linear-gradient(135deg, #243b55, #141e30); box-shadow: 0 8px 20px #0006; }
 .card.round .art { border-radius: 50%; }
+.card .card-menu { position: absolute; top: 8px; right: 8px; z-index: 2; background: #000a; }
 .card .t { margin-top: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .s { color: var(--muted); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .hover-play { position: absolute; right: 18px; top: calc(100% - 92px); width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: #04140f; display: grid; place-items: center; opacity: 0; transform: translateY(8px); transition: .2s; box-shadow: 0 6px 16px #0008; }

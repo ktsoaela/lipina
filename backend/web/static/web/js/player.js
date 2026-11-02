@@ -7,7 +7,7 @@ import { engines } from "./streaming.js";
 export const fromTrack = (t) => ({
   key: `track:${t.id}`, kind: "track", remoteId: t.id, title: t.title, subtitle: t.artist?.name || "",
   artistId: t.artist?.id, album: t.album?.title || "", albumId: t.album?.id, art: t.cover_url,
-  url: t.stream_url, downloadUrl: t.download_url, duration: t.duration, liked: !!t.liked, mime: t.mime_type,
+  url: t.stream_url, downloadUrl: t.download_url, duration: t.duration, liked: !!t.liked, owned: !!t.is_owner, mime: t.mime_type,
 });
 export const fromEpisode = (e) => ({
   key: `episode:${e.id}`, kind: "episode", remoteId: e.id, title: e.title, subtitle: e.podcast_title || "",

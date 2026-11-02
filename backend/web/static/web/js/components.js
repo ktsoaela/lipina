@@ -2,7 +2,7 @@
 import { api } from "./api.js";
 import { download, isDownloaded, progress, removeDownload } from "./offline.js";
 import { fromTrack, player } from "./player.js";
-import { $$, fmtTime, html, icon, img, menu, modal, prompt, toast } from "./ui.js";
+import { $$, confirmDialog, fmtTime, html, icon, img, menu, modal, prompt, toast } from "./ui.js";
 
 export const navigate = (path) => window.dispatchEvent(new CustomEvent("lipina:navigate", { detail: path }));
 
@@ -51,16 +51,16 @@ export function markPlaying(root = document) {
   $$("[data-key]", root).forEach((el) => el.classList.toggle("playing", el.dataset.key === key));
 }
 
-export function card({ title, sub, art, href, round = false, play = false, idx = "" }) {
+export function card({ title, sub, art, href, round = false, play = false, idx = "", extra = "" }) {
   return html`<div class="card ${round ? "round" : ""}" data-idx="${idx}" ${href ? html`data-href="${href}"` : ""} tabindex="0">
-    ${img(art)}${play ? html`<button class="hover-play" data-play aria-label="Play">${icon("play")}</button>` : ""}
+    ${extra}${img(art)}${play ? html`<button class="hover-play" data-play aria-label="Play">${icon("play")}</button>` : ""}
     <div class="t">${title}</div>${sub ? html`<div class="s">${sub}</div>` : ""}</div>`;
 }
 
 export function bindCards(root) {
   root.addEventListener("click", (e) => {
     const c = e.target.closest(".card[data-href]");
-    if (c && !e.target.closest("[data-play]")) navigate(c.dataset.href);
+    if (c && !e.target.closest("[data-play], [data-del]")) navigate(c.dataset.href);
   });
   root.addEventListener("keydown", (e) => {
     const c = e.target.closest(".card[data-href]");
@@ -82,6 +82,7 @@ export function itemMenu(anchor, item) {
     canDownload && (isDownloaded(item.key)
       ? { label: "Remove download", icon: "close", onClick: () => removeDownload(item.key).then(() => toast("Removed from downloads")) }
       : { label: progress.has(item.key) ? "Downloading…" : "Download", icon: "download", onClick: () => download(item).then(() => toast(`Saved "${item.title}" for offline`), (e) => toast(e.message)) }),
+    isTrack && item.owned && { label: "Delete from library", icon: "close", onClick: () => deleteTrack(item) },
     isTrack && { label: "Share", icon: "upload", onClick: () => share(item) },
     item.externalUrl && { label: `Open in ${item.service}`, icon: "cast", onClick: () => window.open(item.externalUrl, "_blank", "noopener") },
   ]);
@@ -107,6 +108,16 @@ export async function trackRadio(trackId) {
     const list = await api.get(`/api/tracks/${trackId}/radio/`);
     player.playItems(list.map(fromTrack));
     toast("Track radio started");
+  } catch (e) { toast(e.message); }
+}
+
+async function deleteTrack(item) {
+  if (!(await confirmDialog("Delete song?", `"${item.title}" will be removed from your library and from any playlists.`))) return;
+  try {
+    await api.del(`/api/tracks/${item.remoteId}/`);
+    await removeDownload(item.key).catch(() => {});
+    document.querySelector(`[data-key="${CSS.escape(item.key)}"]`)?.remove();
+    toast("Deleted from library");
   } catch (e) { toast(e.message); }
 }
 

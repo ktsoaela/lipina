@@ -185,9 +185,27 @@ async function libPlaylists(el) {
   set(el, html`<div class="grid">
     <div class="card" data-href="/liked" tabindex="0" style="background:linear-gradient(135deg,#4527a0,#1ed6a0)"><div style="aspect-ratio:1;display:grid;place-items:center">${icon("heart", "i big")}</div><div class="t">Liked Songs</div></div>
     <button class="card" data-new style="border:2px dashed #ffffff30;background:none"><div style="aspect-ratio:1;display:grid;place-items:center;font-size:48px">+</div><div class="t">New playlist</div></button>
-    ${list.map((p) => card({ title: p.name, sub: `${p.track_count} songs`, art: p.cover_url, href: `/playlist/${p.id}` }))}</div>`);
+    ${list.map((p) => card({
+      title: p.name, sub: `${p.track_count} songs`, art: p.cover_url, href: `/playlist/${p.id}`,
+      extra: p.is_owner ? html`<button class="icon-btn card-menu" data-del="${p.id}" data-name="${encodeURIComponent(p.name)}" title="Delete playlist" aria-label="Delete playlist">${icon("close")}</button>` : "",
+    }))}</div>`);
   bindCards(el);
   $("[data-new]", el).onclick = () => window.dispatchEvent(new Event("lipina:new-playlist"));
+  if (!el.dataset.delBound) {
+    el.dataset.delBound = "1";
+    el.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-del]");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const name = decodeURIComponent(btn.dataset.name || "this playlist");
+      if (!(await confirmDialog("Delete playlist?", `"${name}" will be deleted. Songs stay in your library.`))) return;
+      await api.del(`/api/playlists/${btn.dataset.del}/`);
+      btn.closest(".card")?.remove();
+      window.dispatchEvent(new Event("lipina:playlists"));
+      toast("Playlist deleted");
+    });
+  }
 }
 
 async function libSongs(el) {
@@ -337,7 +355,7 @@ export async function collectionView(el, params, _q, kind) {
       <button class="big-play" data-play aria-label="Play" ${items.length ? "" : "disabled"}>${icon("play")}</button>
       <button class="icon-btn ${player.shuffle ? "on" : ""}" data-shuffle title="Shuffle play">${icon("shuffle")}</button>
       <button class="icon-btn ${allOffline ? "on" : ""}" data-dl title="Download all for offline">${icon(allOffline ? "downloaded" : "download")}</button>
-      ${owner ? html`<button class="icon-btn" data-more title="More">${icon("more")}</button>` : ""}
+      ${owner ? html`<button class="btn ghost" data-delete-playlist>Delete playlist</button><button class="icon-btn" data-more title="More">${icon("more")}</button>` : ""}
     </div>
     ${items.length ? trackTable(items, { album: kind !== "album", removable: owner }) : empty("note", kind === "liked" ? "Songs you like will appear here" : "No songs here yet", kind === "playlist" ? "Find songs with Search and use ⋮ → Add to playlist." : "")}`);
 
@@ -354,6 +372,13 @@ export async function collectionView(el, params, _q, kind) {
     toast(`Downloading ${items.length} songs…`);
     downloadAll(items).then((n) => toast(`${n} songs ready offline`));
   };
+  const deletePlaylist = async () => {
+    if (!(await confirmDialog("Delete playlist?", `"${title}" will be deleted. Songs stay in your library.`))) return;
+    await api.del(`/api/playlists/${params.id}/`);
+    window.dispatchEvent(new Event("lipina:playlists"));
+    navigate("/library");
+  };
+  $("[data-delete-playlist]", el)?.addEventListener("click", deletePlaylist);
   $("[data-more]", el)?.addEventListener("click", (e) => {
     menu(e.currentTarget, [
       { label: "Rename", icon: "lyrics", onClick: async () => {
@@ -369,12 +394,7 @@ export async function collectionView(el, params, _q, kind) {
         toast(meta.is_public ? "Playlist is now private" : "Playlist is now public");
         collectionView(el, params, _q, kind);
       } },
-      { label: "Delete playlist", icon: "close", onClick: async () => {
-        if (!(await confirmDialog("Delete playlist?", `"${title}" will be deleted. Songs stay in your library.`))) return;
-        await api.del(`/api/playlists/${params.id}/`);
-        window.dispatchEvent(new Event("lipina:playlists"));
-        navigate("/library");
-      } },
+      { label: "Delete playlist", icon: "close", onClick: deletePlaylist },
     ]);
   });
 

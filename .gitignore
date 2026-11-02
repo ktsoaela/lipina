@@ -7,6 +7,7 @@ __pycache__/
 !.env.example
 *.sqlite3
 *.sqlite3-journal
+*.apk
 backend/.env
 backend/db.sqlite3
 backend/media/
