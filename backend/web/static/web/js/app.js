@@ -252,22 +252,47 @@ function bindPanel() {
 (function viz() {
   const c = el.viz.getContext("2d");
   const data = new Uint8Array(64);
-  const draw = () => {
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const draw = (now) => {
     requestAnimationFrame(draw);
     if (el.bar.hidden || document.hidden) return;
-    c.clearRect(0, 0, el.viz.width, el.viz.height);
+    // Cross-origin radio and podcasts play outside Web Audio, so the analyser
+    // stays empty. Fall back to a moving pattern while something is playing.
+    const dpr = devicePixelRatio || 1;
+    const cssW = el.viz.clientWidth || 120;
+    const cssH = el.viz.clientHeight || 32;
+    const bw = Math.max(1, Math.round(cssW * dpr));
+    const bh = Math.max(1, Math.round(cssH * dpr));
+    if (el.viz.width !== bw || el.viz.height !== bh) {
+      el.viz.width = bw;
+      el.viz.height = bh;
+    }
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, cssW, cssH);
     const an = player.analyser;
-    const active = an && player.playing && player.audio === player.fx;
-    if (active) an.getByteFrequencyData(data);
-    const bars = 24, w = el.viz.width / bars;
+    const live = !!(an && player.playing && !player.ext && player.audio === player.fx);
+    if (live) an.getByteFrequencyData(data);
+    const bars = 24;
+    const gap = 2;
+    const w = (cssW - gap * (bars - 1)) / bars;
+    const t = now / 1000;
     for (let i = 0; i < bars; i++) {
-      const v = active ? data[i + 2] / 255 : 0.04;
-      const h = Math.max(2, v * el.viz.height);
-      c.fillStyle = `rgba(30,214,160,${0.35 + v * 0.65})`;
-      c.fillRect(i * w + 1, el.viz.height - h, w - 2, h);
+      let v = 0.14;
+      if (live) v = data[i + 2] / 255;
+      else if (player.playing && !reduceMotion) {
+        const env = 0.45 + 0.55 * Math.sin(Math.PI * i / (bars - 1));
+        const a = Math.abs(Math.sin(t * 6.2 + i * 0.85));
+        const b = Math.abs(Math.sin(t * 2.1 + i * 0.42));
+        v = (0.18 + (a * 0.55 + b * 0.45) * env) * 0.85;
+      }
+      const h = Math.max(3, v * cssH);
+      c.fillStyle = `rgba(30,214,160,${0.45 + Math.min(v, 1) * 0.55})`;
+      c.beginPath();
+      c.roundRect(i * (w + gap), cssH - h, Math.max(1, w), h, Math.min(2, w / 2));
+      c.fill();
     }
   };
-  draw();
+  requestAnimationFrame(draw);
 })();
 
 // ----------------------------------------------------------- shortcuts
