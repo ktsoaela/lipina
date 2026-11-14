@@ -57,9 +57,11 @@ Put secrets only in `backend/.env`. That file and `backend/db.sqlite3` stay on t
 
 | Goal | Command |
 |------|---------|
+| Download for Android | [Lipina.apk](https://github.com/ktsoaela/lipina/releases/download/v1/Lipina.apk) |
 | Website | `python manage.py runserver` → http://127.0.0.1:8000 |
 | Phone on the same Wi-Fi | `python manage.py runserver 0.0.0.0:8000` |
 | Android emulator | point the app at `http://10.0.2.2:8000` |
+| Static page | [https://ktsoaela.github.io/lipina/](https://ktsoaela.github.io/lipina/) |
 
 ### Production checklist
 
